@@ -1,0 +1,27 @@
+steps:
+- name: 'python:3.11-slim'
+  id: 'Install KFP + compile'
+  entrypoint: 'bash'
+  args:
+    - -lc
+    - |
+      pip install 'kfp==2.*'
+      python pipelines/pipeline_compile.py
+
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: 'Submit Vertex pipeline run'
+  entrypoint: 'bash'
+  args:
+    - -lc
+    - |
+      gcloud ai pipelines run \
+        --project=$PROJECT_ID \
+        --region=$REGION \
+        --file=pipelines/linreg_v2_pipeline.json \
+        --parameter-values=raw_csv_uri=gs://$BUCKET/kfp-demo/train.csv,mse_threshold=10.0
+substitutions:
+  _PROJECT_ID: $PROJECT_ID
+  _REGION: $REGION
+  _BUCKET: $BUCKET
+options:
+  logging: CLOUD_LOGGING_ONLY
